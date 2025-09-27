@@ -1,0 +1,97 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Функция для генерации кода Save Instance
+local function generateSaveInstanceCode(obj, parentVar)
+    local lines = {}
+    local varName = "inst" .. math.random(10000, 99999)
+    
+    -- Создаем инстанс
+    table.insert(lines, string.format("local %s = Instance.new(\"%s\")", varName, obj.ClassName))
+    table.insert(lines, string.format("%s.Name = \"%s\"", varName, obj.Name))
+    
+    -- Устанавливаем свойства в зависимости от класса
+    if obj:IsA("BasePart") then
+        table.insert(lines, string.format("%s.Size = Vector3.new(%f, %f, %f)", varName, obj.Size.X, obj.Size.Y, obj.Size.Z))
+        table.insert(lines, string.format("%s.Position = Vector3.new(%f, %f, %f)", varName, obj.Position.X, obj.Position.Y, obj.Position.Z))
+        table.insert(lines, string.format("%s.Color = Color3.new(%f, %f, %f)", varName, obj.Color.R, obj.Color.G, obj.Color.B))
+        table.insert(lines, string.format("%s.Material = Enum.Material.%s", varName, tostring(obj.Material)))
+        table.insert(lines, string.format("%s.Anchored = true", varName))
+        table.insert(lines, string.format("%s.CanCollide = false", varName))
+        
+    elseif obj:IsA("SpecialMesh") then
+        if obj.MeshId ~= "" then
+            table.insert(lines, string.format("%s.MeshId = \"%s\"", varName, obj.MeshId))
+        end
+        if obj.TextureId ~= "" then
+            table.insert(lines, string.format("%s.TextureId = \"%s\"", varName, obj.TextureId))
+        end
+        table.insert(lines, string.format("%s.Scale = Vector3.new(%f, %f, %f)", varName, obj.Scale.X, obj.Scale.Y, obj.Scale.Z))
+        
+    elseif obj:IsA("Shirt") and obj.ShirtTemplate ~= "" then
+        table.insert(lines, string.format("%s.ShirtTemplate = \"%s\"", varName, obj.ShirtTemplate))
+        
+    elseif obj:IsA("Pants") and obj.PantsTemplate ~= "" then
+        table.insert(lines, string.format("%s.PantsTemplate = \"%s\"", varName, obj.PantsTemplate))
+        
+    elseif obj:IsA("Humanoid") then
+        table.insert(lines, string.format("%s.Health = %f", varName, obj.Health))
+        table.insert(lines, string.format("%s.MaxHealth = %f", varName, obj.MaxHealth))
+    end
+    
+    -- Устанавливаем родителя
+    if parentVar then
+        table.insert(lines, string.format("%s.Parent = %s", varName, parentVar))
+    else
+        table.insert(lines, string.format("%s.Parent = workspace", varName))
+    end
+    
+    table.insert(lines, "")
+    
+    -- Рекурсивно обрабатываем детей
+    for _, child in ipairs(obj:GetChildren()) do
+        if child:IsA("BasePart") or child:IsA("SpecialMesh") or child:IsA("Shirt") or 
+           child:IsA("Pants") or child:IsA("Humanoid") or child:IsA("Accessory") then
+            local childLines = generateSaveInstanceCode(child, varName)
+            for _, line in ipairs(childLines) do
+                table.insert(lines, line)
+            end
+        end
+    end
+    
+    return lines
+end
+
+-- Генерируем код для всего персонажа
+local allCodeLines = {
+    "-- COPY AND PASTE THIS CODE INTO ROBLOX STUDIO COMMAND BAR",
+    "-- This will recreate your character in workspace",
+    "-- Generated at: " .. os.date(),
+    ""
+}
+
+-- Обрабатываем основные части персонажа
+for _, child in ipairs(character:GetChildren()) do
+    if child:IsA("BasePart") or child:IsA("Humanoid") or child:IsA("Accessory") then
+        local childCode = generateSaveInstanceCode(child, nil)
+        for _, line in ipairs(childCode) do
+            table.insert(allCodeLines, line)
+        end
+    end
+end
+
+-- Объединяем все строки
+local finalCode = table.concat(allCodeLines, "\n")
+
+-- Выводим код частями (если слишком длинный)
+local maxChunkSize = 10000
+if #finalCode > maxChunkSize then
+    print("=== CHARACTER CODE (PART 1/?) ===")
+    print(string.sub(finalCode, 1, maxChunkSize))
+    print("\n=== CHARACTER CODE (PART 2/?) ===")
+    print(string.sub(finalCode, maxChunkSize + 1))
+else
+    print("=== COPY THIS CODE TO ROBLOX STUDIO ===")
+    print(finalCode)
+end
