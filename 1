@@ -1,0 +1,147 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Функция для сохранения инстанса со всеми свойствами
+local function saveInstance(obj, parentVar, depth)
+    depth = depth or 0
+    local indent = string.rep("    ", depth)
+    local lines = {}
+    local varName = "i" .. math.random(1000, 9999)
+    
+    -- Создаем инстанс
+    table.insert(lines, indent .. "local " .. varName .. " = Instance.new(\"" .. obj.ClassName .. "\")")
+    table.insert(lines, indent .. varName .. ".Name = \"" .. obj.Name:gsub("\"", "\\\"") .. "\"")
+    
+    -- Устанавливаем свойства в зависимости от класса
+    if obj:IsA("BasePart") then
+        table.insert(lines, indent .. varName .. ".Size = Vector3.new(" .. obj.Size.X .. ", " .. obj.Size.Y .. ", " .. obj.Size.Z .. ")")
+        table.insert(lines, indent .. varName .. ".Position = Vector3.new(" .. obj.Position.X .. ", " .. obj.Position.Y .. ", " .. obj.Position.Z .. ")")
+        table.insert(lines, indent .. varName .. ".Rotation = Vector3.new(" .. obj.Orientation.X .. ", " .. obj.Orientation.Y .. ", " .. obj.Orientation.Z .. ")")
+        table.insert(lines, indent .. varName .. ".Color = Color3.new(" .. obj.Color.R .. ", " .. obj.Color.G .. ", " .. obj.Color.B .. ")")
+        table.insert(lines, indent .. varName .. ".Transparency = " .. obj.Transparency)
+        table.insert(lines, indent .. varName .. ".Material = Enum.Material." .. tostring(obj.Material))
+        table.insert(lines, indent .. varName .. ".Reflectance = " .. obj.Reflectance)
+        table.insert(lines, indent .. varName .. ".Anchored = true")
+        table.insert(lines, indent .. varName .. ".CanCollide = false")
+        
+        -- Для MeshPart
+        if obj:IsA("MeshPart") then
+            if obj.MeshId ~= "" then
+                table.insert(lines, indent .. varName .. ".MeshId = \"" .. obj.MeshId .. "\"")
+            end
+            if obj.TextureID ~= "" then
+                table.insert(lines, indent .. varName .. ".TextureID = \"" .. obj.TextureID .. "\"")
+            end
+        end
+        
+    elseif obj:IsA("SpecialMesh") then
+        if obj.MeshId ~= "" then
+            table.insert(lines, indent .. varName .. ".MeshId = \"" .. obj.MeshId .. "\"")
+        end
+        if obj.TextureId ~= "" then
+            table.insert(lines, indent .. varName .. ".TextureId = \"" .. obj.TextureId .. "\"")
+        end
+        table.insert(lines, indent .. varName .. ".Scale = Vector3.new(" .. obj.Scale.X .. ", " .. obj.Scale.Y .. ", " .. obj.Scale.Z .. ")")
+        table.insert(lines, indent .. varName .. ".Offset = Vector3.new(" .. obj.Offset.X .. ", " .. obj.Offset.Y .. ", " .. obj.Offset.Z .. ")")
+        table.insert(lines, indent .. varName .. ".MeshType = Enum.MeshType." .. tostring(obj.MeshType))
+        
+    elseif obj:IsA("Shirt") then
+        if obj.ShirtTemplate ~= "" then
+            table.insert(lines, indent .. varName .. ".ShirtTemplate = \"" .. obj.ShirtTemplate .. "\"")
+        end
+        
+    elseif obj:IsA("Pants") then
+        if obj.PantsTemplate ~= "" then
+            table.insert(lines, indent .. varName .. ".PantsTemplate = \"" .. obj.PantsTemplate .. "\"")
+        end
+        
+    elseif obj:IsA("ShirtGraphic") then
+        if obj.Graphic ~= "" then
+            table.insert(lines, indent .. varName .. ".Graphic = \"" .. obj.Graphic .. "\"")
+        end
+        
+    elseif obj:IsA("Humanoid") then
+        table.insert(lines, indent .. varName .. ".HealthDisplayType = Enum.HumanoidHealthDisplayType." .. tostring(obj.HealthDisplayType))
+        table.insert(lines, indent .. varName .. ".MaxHealth = " .. obj.MaxHealth)
+        table.insert(lines, indent .. varName .. ".Health = " .. obj.Health)
+        
+    elseif obj:IsA("BodyColors") then
+        table.insert(lines, indent .. varName .. ".HeadColor = BrickColor.new(\"" .. obj.HeadColor.Name .. "\")")
+        table.insert(lines, indent .. varName .. ".TorsoColor = BrickColor.new(\"" .. obj.TorsoColor.Name .. "\")")
+        table.insert(lines, indent .. varName .. ".LeftArmColor = BrickColor.new(\"" .. obj.LeftArmColor.Name .. "\")")
+        table.insert(lines, indent .. varName .. ".RightArmColor = BrickColor.new(\"" .. obj.RightArmColor.Name .. "\")")
+        table.insert(lines, indent .. varName .. ".LeftLegColor = BrickColor.new(\"" .. obj.LeftLegColor.Name .. "\")")
+        table.insert(lines, indent .. varName .. ".RightLegColor = BrickColor.new(\"" .. obj.RightLegColor.Name .. "\")")
+    end
+    
+    -- Устанавливаем родителя
+    if parentVar then
+        table.insert(lines, indent .. varName .. ".Parent = " .. parentVar)
+    else
+        table.insert(lines, indent .. varName .. ".Parent = workspace")
+    end
+    
+    table.insert(lines, "")
+    
+    -- Рекурсивно обрабатываем детей (сохраняем ВСЕ элементы аксессуаров)
+    for _, child in ipairs(obj:GetChildren()) do
+        local childLines = saveInstance(child, varName, depth + 1)
+        for _, line in ipairs(childLines) do
+            table.insert(lines, line)
+        end
+    end
+    
+    return lines
+end
+
+-- Создаем основную модель
+local allCode = {
+    "-- COPY AND PASTE INTO ROBLOX STUDIO COMMAND BAR",
+    "-- Exact 1:1 character copy with all accessories",
+    "-- Player: " .. player.Name,
+    "-- Time: " .. os.date(),
+    "",
+    "local characterModel = Instance.new(\"Model\")",
+    "characterModel.Name = \"SavedCharacter_" .. player.Name .. "\"",
+    "characterModel.Parent = workspace",
+    ""
+}
+
+-- Сохраняем все элементы персонажа
+for _, child in ipairs(character:GetChildren()) do
+    local childCode = saveInstance(child, "characterModel", 1)
+    for _, line in ipairs(childCode) do
+        table.insert(allCode, line)
+    end
+end
+
+table.insert(allCode, "print(\"Character saved: \" .. characterModel.Name)")
+
+-- Выводим код
+local fullCode = table.concat(allCode, "\n")
+
+-- Разбиваем на части если слишком длинный
+local function splitCode(code)
+    local parts = {}
+    local maxLength = 15000
+    
+    while #code > maxLength do
+        local splitPos = code:sub(1, maxLength):find("\n[^\n]*$") or maxLength
+        table.insert(parts, code:sub(1, splitPos))
+        code = code:sub(splitPos + 1)
+    end
+    table.insert(parts, code)
+    
+    return parts
+end
+
+local codeParts = splitCode(fullCode)
+
+for i, part in ipairs(codeParts) do
+    print("=== CHARACTER CODE PART " .. i .. "/" .. #codeParts .. " ===")
+    print(part)
+    if i < #codeParts then
+        print("\n--- CONTINUED IN NEXT PART ---\n")
+    end
+end
