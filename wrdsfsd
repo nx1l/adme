@@ -1,0 +1,88 @@
+local Players = game:GetService("Players")
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+
+-- Функция для создания кода модели
+local function generateCharacterCode(char)
+    local lines = {}
+    local partCount = 0
+    
+    table.insert(lines, "-- CHARACTER CODE FOR ROBLOX STUDIO")
+    table.insert(lines, "-- Generated for: " .. player.Name)
+    table.insert(lines, "-- Time: " .. os.date())
+    table.insert(lines, "")
+    table.insert(lines, "local model = Instance.new(\"Model\")")
+    table.insert(lines, "model.Name = \"SavedCharacter_" .. player.Name .. "\"")
+    table.insert(lines, "")
+    
+    -- Сохраняем тело и аксессуары
+    for _, child in ipairs(char:GetChildren()) do
+        if child:IsA("BasePart") or child:IsA("MeshPart") then
+            partCount = partCount + 1
+            local varName = "part" .. partCount
+            
+            table.insert(lines, "local " .. varName .. " = Instance.new(\"" .. child.ClassName .. "\")")
+            table.insert(lines, varName .. ".Name = \"" .. child.Name .. "\"")
+            table.insert(lines, varName .. ".Size = Vector3.new(" .. child.Size.X .. ", " .. child.Size.Y .. ", " .. child.Size.Z .. ")")
+            table.insert(lines, varName .. ".Position = Vector3.new(" .. child.Position.X .. ", " .. child.Position.Y .. ", " .. child.Position.Z .. ")")
+            table.insert(lines, varName .. ".Color = Color3.new(" .. child.Color.R .. ", " .. child.Color.G .. ", " .. child.Color.B .. ")")
+            table.insert(lines, varName .. ".Material = Enum.Material." .. tostring(child.Material))
+            table.insert(lines, varName .. ".Anchored = true")
+            table.insert(lines, varName .. ".CanCollide = false")
+            
+            if child:IsA("MeshPart") and child.MeshId ~= "" then
+                table.insert(lines, varName .. ".MeshId = \"" .. child.MeshId .. "\"")
+            end
+            if child:IsA("MeshPart") and child.TextureID ~= "" then
+                table.insert(lines, varName .. ".TextureID = \"" .. child.TextureID .. "\"")
+            end
+            
+            table.insert(lines, varName .. ".Parent = model")
+            table.insert(lines, "")
+        elseif child:IsA("Accessory") then
+            local handle = child:FindFirstChild("Handle")
+            if handle and handle:IsA("BasePart") then
+                partCount = partCount + 1
+                local varName = "acc" .. partCount
+                
+                table.insert(lines, "local " .. varName .. " = Instance.new(\"Part\")")
+                table.insert(lines, varName .. ".Name = \"" .. child.Name .. "\"")
+                table.insert(lines, varName .. ".Size = Vector3.new(" .. handle.Size.X .. ", " .. handle.Size.Y .. ", " .. handle.Size.Z .. ")")
+                table.insert(lines, varName .. ".Position = Vector3.new(" .. handle.Position.X .. ", " .. handle.Position.Y .. ", " .. handle.Position.Z .. ")")
+                table.insert(lines, varName .. ".Color = Color3.new(" .. handle.Color.R .. ", " .. handle.Color.G .. ", " .. handle.Color.B .. ")")
+                table.insert(lines, varName .. ".Material = Enum.Material." .. tostring(handle.Material))
+                table.insert(lines, varName .. ".Anchored = true")
+                table.insert(lines, varName .. ".CanCollide = false")
+                table.insert(lines, varName .. ".Parent = model")
+                table.insert(lines, "")
+            end
+        elseif child:IsA("Shirt") then
+            table.insert(lines, "local shirt = Instance.new(\"Shirt\")")
+            table.insert(lines, "shirt.Name = \"Shirt\"")
+            if child.ShirtTemplate ~= "" then
+                table.insert(lines, "shirt.ShirtTemplate = \"" .. child.ShirtTemplate .. "\"")
+            end
+            table.insert(lines, "shirt.Parent = model")
+            table.insert(lines, "")
+        elseif child:IsA("Pants") then
+            table.insert(lines, "local pants = Instance.new(\"Pants\")")
+            table.insert(lines, "pants.Name = \"Pants\"")
+            if child.PantsTemplate ~= "" then
+                table.insert(lines, "pants.PantsTemplate = \"" .. child.PantsTemplate .. "\"")
+            end
+            table.insert(lines, "pants.Parent = model")
+            table.insert(lines, "")
+        end
+    end
+    
+    table.insert(lines, "model.Parent = workspace")
+    table.insert(lines, "")
+    table.insert(lines, "print(\"Character saved: \" .. model.Name)")
+    
+    return table.concat(lines, "\n")
+end
+
+-- Генерируем и выводим код
+local characterCode = generateCharacterCode(character)
+print("=== COPY THE CODE BELOW INTO ROBLOX STUDIO COMMAND BAR ===")
+print(characterCode)
